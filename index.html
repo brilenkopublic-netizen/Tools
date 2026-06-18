@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="ru">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Калькулятор компенсации</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				margin: 24px;
+				color: #111;
+				background: #f7f7fb;
+			}
+			.card {
+				max-width: 520px;
+				background: #fff;
+				border: 1px solid #e7e7ef;
+				border-radius: 14px;
+				padding: 18px 18px 16px;
+				box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+			}
+			h1 {
+				font-size: 18px;
+				margin: 0 0 14px;
+			}
+
+			.row {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 10px;
+				margin-top: 10px;
+			}
+
+			label {
+				font-size: 13px;
+				color: #444;
+			}
+
+			input {
+				width: 100%;
+				padding: 10px 12px;
+				border-radius: 10px;
+				border: 1px solid #d9d9e6;
+				font-size: 15px;
+				outline: none;
+				box-sizing: border-box;
+				background: #fff;
+			}
+			input:focus {
+				border-color: #9aa2ff;
+			}
+
+			.buttons {
+				display: flex;
+				gap: 10px;
+				flex-wrap: wrap;
+				margin-top: 6px;
+			}
+
+			button {
+				cursor: pointer;
+				padding: 10px 14px;
+				border: 0;
+				border-radius: 10px;
+				background: #4f6dff;
+				color: #fff;
+				font-size: 14px;
+			}
+			button.secondary {
+				background: #eef0ff;
+				color: #2f3a8f;
+				border: 1px solid #d9ddff;
+			}
+
+			.result {
+				margin-top: 14px;
+				padding: 12px 12px;
+				background: #f3f6ff;
+				border: 1px solid #d9ddff;
+				border-radius: 12px;
+			}
+
+			.result .big {
+				font-size: 20px;
+				font-weight: 700;
+				margin-bottom: 4px;
+			}
+			.result .small {
+				font-size: 13px;
+				color: #3a4692;
+			}
+
+			.table {
+				margin-top: 14px;
+				font-size: 13px;
+				color: #333;
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				margin-top: 8px;
+				overflow: hidden;
+				border-radius: 12px;
+				border: 1px solid #e7e7ef;
+				background: #fff;
+			}
+			th,
+			td {
+				padding: 10px;
+				border-bottom: 1px solid #efeff5;
+				text-align: left;
+			}
+			th {
+				background: #fafafe;
+				font-weight: 700;
+			}
+			tr:last-child td {
+				border-bottom: 0;
+			}
+
+			.error {
+				margin-top: 10px;
+				color: #b00020;
+				font-size: 13px;
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="card">
+			<h1>Калькулятор компенсации</h1>
+
+			<div class="row">
+				<div>
+					<label for="price">Стоимость товара (₽)</label>
+					<input
+						id="price"
+						type="number"
+						inputmode="decimal"
+						min="0"
+						step="1"
+						placeholder="Например: 900"
+					/>
+					<div class="error" id="error">Введите число больше 0.</div>
+
+					<div class="buttons" style="margin-top: 10px">
+						<button id="addBtn" type="button" class="secondary">
+							Добавить товар
+						</button>
+					</div>
+
+					<div
+						class="small"
+						id="itemsSummary"
+						style="margin-top: 8px; color: #3a4692"
+					>
+						Товаров добавлено: 0
+					</div>
+				</div>
+
+				<div class="buttons">
+					<button id="calcBtn" type="button">Рассчитать</button>
+					<button class="secondary" id="clearBtn" type="button">
+						Очистить
+					</button>
+				</div>
+
+				<div class="result" id="result" aria-live="polite">
+					<div class="big" id="points">—</div>
+					<div class="small" id="range">
+						Введите товары, чтобы увидеть количество баллов/компенсацию.
+					</div>
+				</div>
+			</div>
+
+			<div class="table">
+				<div><b>Товары</b> (можно удалить):</div>
+				<table>
+					<thead>
+						<tr>
+							<th>Стоимость</th>
+							<th>Удалить</th>
+						</tr>
+					</thead>
+					<tbody id="itemsTableBody">
+						<tr>
+							<td colspan="2" style="color: #3a4692">
+								Пока нет добавленных товаров.
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="table">
+				<div><b>Ступени</b> (баллы):</div>
+				<table>
+					<thead>
+						<tr>
+							<th>Стоимость</th>
+							<th>Баллы</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>От 1 до 250</td>
+							<td>50</td>
+						</tr>
+						<tr>
+							<td>От 251 до 500</td>
+							<td>100</td>
+						</tr>
+						<tr>
+							<td>От 501 до 750</td>
+							<td>150</td>
+						</tr>
+						<tr>
+							<td>От 751 до 1000</td>
+							<td>200</td>
+						</tr>
+						<tr>
+							<td>От 1001 до 1500</td>
+							<td>250</td>
+						</tr>
+						<tr>
+							<td>От 1501 до 2000</td>
+							<td>300</td>
+						</tr>
+						<tr>
+							<td>От 2001 до 3000</td>
+							<td>350</td>
+						</tr>
+						<tr>
+							<td>От 3001 и выше</td>
+							<td>400</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<script>
+			const priceEl = document.getElementById("price");
+			const calcBtn = document.getElementById("calcBtn");
+			const clearBtn = document.getElementById("clearBtn");
+			const errorEl = document.getElementById("error");
+			const pointsEl = document.getElementById("points");
+			const rangeEl = document.getElementById("range");
+			const itemsSummaryEl = document.getElementById("itemsSummary");
+			const addBtn = document.getElementById("addBtn");
+
+			const tiers = [
+				{ min: 1, max: 250, points: 50, label: "1–250" },
+				{ min: 251, max: 500, points: 100, label: "251–500" },
+				{ min: 501, max: 750, points: 150, label: "501–750" },
+				{ min: 751, max: 1000, points: 200, label: "751–1000" },
+				{ min: 1001, max: 1500, points: 250, label: "1001–1500" },
+				{ min: 1501, max: 2000, points: 300, label: "1501–2000" },
+				{ min: 2001, max: 3000, points: 350, label: "2001–3000" },
+				{ min: 3001, max: Infinity, points: 400, label: "3001+" },
+			];
+
+			function calcCompensation(sumPrice) {
+				return (
+					tiers.find((t) => sumPrice >= t.min && sumPrice <= t.max) || null
+				);
+			}
+
+			function setError(show) {
+				errorEl.style.display = show ? "block" : "none";
+			}
+
+			let items = [];
+			let addedTotal = 0;
+
+			const itemsTableBodyEl = document.getElementById("itemsTableBody");
+
+			function renderItemsTable() {
+				itemsTableBodyEl.innerHTML = "";
+
+				if (items.length === 0) {
+					const tr = document.createElement("tr");
+					const td = document.createElement("td");
+					td.colSpan = 2;
+					td.style.color = "#3a4692";
+					td.textContent = "Пока нет добавленных товаров.";
+					tr.appendChild(td);
+					itemsTableBodyEl.appendChild(tr);
+					return;
+				}
+
+				items.forEach((price, index) => {
+					const tr = document.createElement("tr");
+
+					const tdPrice = document.createElement("td");
+					tdPrice.textContent = `${price} ₽`;
+
+					const tdAction = document.createElement("td");
+					const btn = document.createElement("button");
+					btn.type = "button";
+					btn.textContent = "✕";
+					btn.className = "secondary";
+					btn.style.padding = "6px 10px";
+					btn.style.borderRadius = "10px";
+					btn.addEventListener("click", () => {
+						items.splice(index, 1);
+						addedTotal = items.reduce((s, v) => s + v, 0);
+						itemsSummaryEl.textContent = `Товаров добавлено: ${items.length}`;
+						recalcFromItems();
+					});
+
+					tdAction.appendChild(btn);
+
+					tr.appendChild(tdPrice);
+					tr.appendChild(tdAction);
+					itemsTableBodyEl.appendChild(tr);
+				});
+			}
+
+			function recalcFromItems() {
+				addedTotal = items.reduce((s, v) => s + v, 0);
+				renderItemsTable();
+
+				if (items.length === 0) {
+					pointsEl.textContent = "—";
+					rangeEl.textContent =
+						"Добавьте товары, чтобы увидеть баллы и итоговую сумму.";
+					return;
+				}
+
+				const tier = calcCompensation(addedTotal);
+
+				if (!tier) {
+					pointsEl.textContent = "—";
+					rangeEl.textContent = `Сумма товаров: ${addedTotal} ₽`;
+					return;
+				}
+
+				const compensation = tier.points;
+				const total = addedTotal + compensation;
+
+				pointsEl.textContent = `${tier.points} баллов`;
+				rangeEl.textContent = `Сумма товаров: ${addedTotal} ₽ → диапазон ${tier.label} → итоговая сумма (стоимость + баллы): ${total} ₽`;
+			}
+
+			function addItem() {
+				const raw = priceEl.value;
+				const price = Number(raw);
+
+				if (!Number.isFinite(price) || price <= 0) {
+					setError(true);
+					return;
+				}
+
+				setError(false);
+				items.push(price);
+				addedTotal += price;
+
+				itemsSummaryEl.textContent = `Товаров добавлено: ${items.length}`;
+				recalcFromItems();
+
+				priceEl.value = "";
+			}
+
+			addBtn.addEventListener("click", addItem);
+
+			calcBtn.addEventListener("click", recalcFromItems);
+
+			clearBtn.addEventListener("click", () => {
+				priceEl.value = "";
+				setError(false);
+				items = [];
+				addedTotal = 0;
+				itemsSummaryEl.textContent = "Товаров добавлено: 0";
+				recalcFromItems();
+			});
+
+			priceEl.addEventListener("input", () => {
+				if (priceEl.value.trim() === "") {
+					setError(false);
+					return;
+				}
+				const price = Number(priceEl.value);
+				setError(!Number.isFinite(price) || price <= 0);
+			});
+
+			recalcFromItems();
+		</script>
+	</body>
+</html>
