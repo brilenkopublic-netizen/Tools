@@ -132,7 +132,28 @@
 
 			<div class="row">
 				<div>
-					<label for="price">Стоимость товара (₽)</label>
+					<label for="scenario">Ситуация</label>
+					<select
+						id="scenario"
+						style="
+							width: 100%;
+							padding: 10px 12px;
+							border-radius: 10px;
+							border: 1px solid #d9d9e6;
+							font-size: 15px;
+							background: #fff;
+							outline: none;
+							box-sizing: border-box;
+							margin-top: 6px;
+						"
+					>
+						<option value="A" selected>1 товар и жалоба по нему</option>
+						<option value="B">Несколько товаров и общая претензия</option>
+					</select>
+
+					<label for="price" style="display: block; margin-top: 12px"
+						>Стоимость товара (₽)</label
+					>
 					<input
 						id="price"
 						type="number"
@@ -169,6 +190,23 @@
 					<div class="big" id="points">—</div>
 					<div class="small" id="range">
 						Введите товары, чтобы увидеть количество баллов/компенсацию.
+					</div>
+					<div class="table" style="margin-top: 10px">
+						<div><b>Итог по товарам</b>:</div>
+						<table>
+							<thead>
+								<tr>
+									<th>Стоимость</th>
+									<th>Начислено баллов</th>
+									<th>Итог на товар</th>
+								</tr>
+							</thead>
+							<tbody id="perItemTableBody">
+								<tr>
+									<td colspan="3" style="color: #3a4692">Пока нет данных.</td>
+								</tr>
+							</tbody>
+						</table>
 					</div>
 				</div>
 			</div>
@@ -241,6 +279,7 @@
 
 		<script>
 			const priceEl = document.getElementById("price");
+			const scenarioEl = document.getElementById("scenario");
 			const calcBtn = document.getElementById("calcBtn");
 			const clearBtn = document.getElementById("clearBtn");
 			const errorEl = document.getElementById("error");
@@ -274,6 +313,7 @@
 			let addedTotal = 0;
 
 			const itemsTableBodyEl = document.getElementById("itemsTableBody");
+			const perItemTableBodyEl = document.getElementById("perItemTableBody");
 
 			function renderItemsTable() {
 				itemsTableBodyEl.innerHTML = "";
@@ -321,26 +361,85 @@
 				addedTotal = items.reduce((s, v) => s + v, 0);
 				renderItemsTable();
 
+				const scenario = scenarioEl.value;
+				perItemTableBodyEl.innerHTML = "";
+
 				if (items.length === 0) {
 					pointsEl.textContent = "—";
 					rangeEl.textContent =
 						"Добавьте товары, чтобы увидеть баллы и итоговую сумму.";
+
+					const tr = document.createElement("tr");
+					const td = document.createElement("td");
+					td.colSpan = 3;
+					td.style.color = "#3a4692";
+					td.textContent = "Пока нет данных.";
+					tr.appendChild(td);
+					perItemTableBodyEl.appendChild(tr);
 					return;
 				}
 
-				const tier = calcCompensation(addedTotal);
+				// Вариант A: жалоба на 1 товар => считаем доп. баллы по стоимости этого товара.
+				// Вариант B: жалоба на несколько товаров + общая претензия => считаем по сумме всех товаров,
+				// а доп. баллы начисляем к одному любому товару (берём первый).
+				let baseSumForTier = 0;
+				if (scenario === "A") {
+					if (items.length !== 1) {
+						pointsEl.textContent = "—";
+						rangeEl.textContent = "Для сценария A добавьте ровно 1 товар.";
+						const tr = document.createElement("tr");
+						const td = document.createElement("td");
+						td.colSpan = 3;
+						td.style.color = "#3a4692";
+						td.textContent =
+							"Проверьте количество товаров для выбранной ситуации.";
+						tr.appendChild(td);
+						perItemTableBodyEl.appendChild(tr);
+						return;
+					}
+					baseSumForTier = items[0];
+				} else {
+					baseSumForTier = addedTotal;
+				}
 
+				const tier = calcCompensation(baseSumForTier);
 				if (!tier) {
 					pointsEl.textContent = "—";
-					rangeEl.textContent = `Сумма товаров: ${addedTotal} ₽`;
+					rangeEl.textContent = `Сумма: ${baseSumForTier} ₽`;
 					return;
 				}
 
 				const compensation = tier.points;
-				const total = addedTotal + compensation;
+				const total = baseSumForTier + compensation;
 
-				pointsEl.textContent = `${tier.points} баллов`;
-				rangeEl.textContent = `Сумма товаров: ${addedTotal} ₽ → диапазон ${tier.label} → итоговая сумма (стоимость + баллы): ${total} ₽`;
+				pointsEl.textContent = `${compensation} баллов`;
+				rangeEl.textContent =
+					scenario === "A"
+						? `Стоимость товара: ${baseSumForTier} ₽ → диапазон ${tier.label} → итог: ${total} ₽`
+						: `Сумма товаров: ${baseSumForTier} ₽ → диапазон ${tier.label} → итог: ${total} ₽`;
+
+				// Шаг 3: добавляем доп. баллы к одному любому товару (берём первый).
+				const specialIndex = 0;
+
+				items.forEach((price, index) => {
+					const tr = document.createElement("tr");
+
+					const tdPrice = document.createElement("td");
+					tdPrice.textContent = `${price} ₽`;
+
+					const tdPoints = document.createElement("td");
+					const pointsForThis = index === specialIndex ? compensation : 0;
+					tdPoints.textContent = `${pointsForThis} ${pointsForThis === 1 ? "балл" : "баллов"}`;
+
+					const tdTotal = document.createElement("td");
+					const itemTotal = price + pointsForThis;
+					tdTotal.textContent = `${itemTotal} баллов`;
+
+					tr.appendChild(tdPrice);
+					tr.appendChild(tdPoints);
+					tr.appendChild(tdTotal);
+					perItemTableBodyEl.appendChild(tr);
+				});
 			}
 
 			function addItem() {
